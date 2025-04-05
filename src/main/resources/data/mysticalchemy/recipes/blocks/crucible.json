@@ -1,22 +1,17 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "pattern": [
-  	"G G",
-  	"I I",
-  	"IBI"
-  ],
-  "key": {
-  	"G": {
-  		"item": "minecraft:gold_ingot"
-  	},
-  	"I": {
-  		"item": "minecraft:iron_ingot"
-  	},
-  	"B": {
-  		"item": "minecraft:iron_block"
-  	}
-  },
-  "result": {
-    "item": "mysticalchemy:crucible_empty"   
-  }
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"# #",
+		"gCg",
+		"iii"
+	],
+	"key": {
+		"#": {"item": "minecraft:amethyst_shard"},
+		"g": {"item": "minecraft:gold_ingot"},
+		"C": {"item": "minecraft:cauldron"},
+		"i": {"item": "minecraft:iron_ingot"}
+	},
+	"result": {
+		"item": "mysticalchemy:crucible_empty"   
+	}
 }

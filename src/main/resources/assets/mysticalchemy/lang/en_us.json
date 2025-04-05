@@ -1,13 +1,11 @@
 {
-	"itemGroup.mysticalchemy": "Mysticalchemy",
+	"itemGroup.mysticalchemy": "Ebalchemy",
 
-	"block.mysticalchemy.crucible": "Crucible",
-	"block.mysticalchemy.crucible_empty": "Crucible",
+	"block.mysticalchemy.crucible": "Alchemy Cauldron",
+	"block.mysticalchemy.crucible_empty": "Alchemy Cauldron",
 
-	"item.mysticalchemy.concoction": "Mystic Concoction",
-	"item.mysticalchemy.crucible_spoon": "Crucible Spoon",
-	"item.mysticalchemy.simple_sampling_kit": "Simple Sampling Kit",
-	"item.mysticalchemy.advanced_sampling_kit": "Advanced Sampling Kit",	
+	"item.mysticalchemy.concoction": "Strange Concoction",
+	"item.mysticalchemy.crucible_spoon": "Alchemist's Spoon",
 	
 	"chat.mysticalchemy.no_effects": "There are no effects in the potion.",
 	"chat.mysticalchemy.no_notable_effects": "There are no effects in the potion that this kit can read.",

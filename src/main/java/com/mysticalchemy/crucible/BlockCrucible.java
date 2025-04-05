@@ -10,6 +10,8 @@ import com.mysticalchemy.init.TileEntityInit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.cauldron.CauldronInteraction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -41,137 +43,144 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
 public class BlockCrucible extends LayeredCauldronBlock implements EntityBlock, IDontCreateBlockItem {
-	public BlockCrucible() {
-		super(BlockBehaviour.Properties.copy(Blocks.CAULDRON).noOcclusion().strength(3.0f), LayeredCauldronBlock.RAIN, CauldronInteraction.WATER);
-	}
-	
-	@Override
-	public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-		return new CrucibleTile(pPos, pState);
-	}
-	
-	@Override
+    public BlockCrucible() {
+        super(BlockBehaviour.Properties.copy(Blocks.CAULDRON).noOcclusion().strength(3.0f), LayeredCauldronBlock.RAIN, CauldronInteraction.WATER);
+    }
+    
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
+        return new CrucibleTile(pPos, pState);
+    }
+    
+    @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
         return type == TileEntityInit.CRUCIBLE_TILE_TYPE.get() ? (world1, pos, state1, te) -> CrucibleTile.Tick(world1, pos, state1, (CrucibleTile) te) : null;
     }
-	
-	@Override
-	public void entityInside(BlockState state, Level worldIn, BlockPos pos, Entity entityIn) {
-		int fillLevel = state.getValue(LEVEL);
-		float insideYPos = pos.getY() + (6.0F + 3 * fillLevel) / 16.0F;
-		if (!worldIn.isClientSide && fillLevel > 0 && entityIn.getY() <= insideYPos) {
-			if (entityIn instanceof ItemEntity) {
-				CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
-				if (crucible != null) {
-					ItemStack stack = ((ItemEntity) entityIn).getItem();
-					if (crucible.tryAddIngredient(stack)) {
-						worldIn.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 1.0f,
-								(float) (0.8f + Math.random() * 0.4f));
-						entityIn.remove(RemovalReason.KILLED);
-					} else {
-						entityIn.push(-0.2 + Math.random() * 0.4, 1, -0.2 + Math.random() * 0.4); 
-					}
-				}
-			} else if (entityIn instanceof LivingEntity) {
-				CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
-				if (crucible != null && crucible.getHeat() > crucible.getMaxHeat() / 2) {
-					entityIn.hurt(worldIn.damageSources().inFire(), 1);
-				}
-			}
-		}
-	}
-	
-	@Override
-	public void animateTick(BlockState pState, Level pLevel, BlockPos pPos, RandomSource pRandom) {
-		if (pLevel.isClientSide && pState.getValue(LEVEL) > 0) {
-			CrucibleTile crucible = (CrucibleTile) pLevel.getBlockEntity(pPos);
-			if (crucible != null && crucible.getHeat() >= CrucibleTile.BOIL_POINT) {
-				Minecraft mc = Minecraft.getInstance();
-				pLevel.playSound(mc.player, pPos, SoundEvents.LAVA_POP, SoundSource.BLOCKS,
-						1.0f, (float) (0.8f + Math.random() * 0.4f));
-			}
-		}
-	}
-	
-	@Override
-	public InteractionResult use(BlockState state, Level worldIn, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit) {
-		CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
-		if (crucible != null && state.getValue(LEVEL) > 0) {
-			HashMap<MobEffect, Float> prominents = crucible.getProminentEffects();
-			if (prominents.size() > 0) {
-				// if there are prominents and the player is using a glass bottle, assume
-				// extracting current potion.
-				if (player.getItemInHand(handIn).getItem() == Items.GLASS_BOTTLE) {
-					extractPotion(worldIn, prominents, crucible, player, handIn, state, pos);
-					return InteractionResult.SUCCESS;
-				}
-				// disable other interactions when there's a potion in the crucible
-				return InteractionResult.SUCCESS;
-			}
-		}
-		
-		ItemStack itemstack = player.getItemInHand(handIn);
-		if (itemstack.getItem() == Items.WATER_BUCKET) {
-			worldIn.setBlock(pos, state.setValue(LayeredCauldronBlock.LEVEL, 3), UPDATE_ALL);
-			return InteractionResult.sidedSuccess(worldIn.isClientSide);
-		}else if (itemstack.getItem() == Items.BUCKET){
-			worldIn.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), UPDATE_ALL);
-			player.setItemInHand(handIn, new ItemStack(Items.WATER_BUCKET));
-			return InteractionResult.sidedSuccess(worldIn.isClientSide);
-		}
-		
-		return InteractionResult.FAIL;
-	}
-	
-	private void extractPotion(Level worldIn, HashMap<MobEffect, Float> prominents, CrucibleTile crucible, Player player, InteractionHand handIn, BlockState state, BlockPos pos) {
-		if (!worldIn.isClientSide) {
-			List<MobEffectInstance> prominentEffects = new ArrayList<MobEffectInstance>();
-			
-			ItemStack potionstack = createBasePotionStack(crucible);
-			
-			prominents.forEach((e, f) -> {
-				prominentEffects.add(new MobEffectInstance(e, e.isInstantenous() ? 1 : crucible.getDuration(), (int) Math.floor(f - 1)));
-			});
-			PotionUtils.setPotion(potionstack, Potions.WATER);
-			PotionUtils.setCustomEffects(potionstack, prominentEffects);
+    
+    @Override
+    public void entityInside(BlockState state, Level worldIn, BlockPos pos, Entity entityIn) {
+        int fillLevel = state.getValue(LEVEL);
+        float insideYPos = pos.getY() + (6.0F + 3 * fillLevel) / 16.0F;
+        if (!worldIn.isClientSide && fillLevel > 0 && entityIn.getY() <= insideYPos) {
+            if (entityIn instanceof ItemEntity) {
+                CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
+                if (crucible != null) {
+                    ItemStack stack = ((ItemEntity) entityIn).getItem();
+                    if (crucible.tryAddIngredient(stack)) {
+                        worldIn.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 1.0f,
+                                (float) (0.8f + Math.random() * 0.4f));
+                        entityIn.remove(RemovalReason.KILLED);
+                    } else {
+                        entityIn.push(-0.2 + Math.random() * 0.4, 1, -0.2 + Math.random() * 0.4); 
+                    }
+                }
+            } else if (entityIn instanceof LivingEntity) {
+                CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
+                if (crucible != null && crucible.getHeat() > crucible.getMaxHeat() / 2) {
+                    entityIn.hurt(worldIn.damageSources().inFire(), 1);
+                }
+            }
+        }
+    }
+    
+    @Override
+    public void animateTick(BlockState pState, Level pLevel, BlockPos pPos, RandomSource pRandom) {
+        if (pLevel.isClientSide && pState.getValue(LEVEL) > 0) {
+            CrucibleTile crucible = (CrucibleTile) pLevel.getBlockEntity(pPos);
+            if (crucible != null && crucible.getHeat() >= CrucibleTile.BOIL_POINT) {
+                Minecraft mc = Minecraft.getInstance();
+                pLevel.playSound(mc.player, pPos, SoundEvents.LAVA_POP, SoundSource.BLOCKS,
+                        1.0f, (float) (0.8f + Math.random() * 0.4f));
+            }
+        }
+    }
+    
+    @Override
+    public InteractionResult use(BlockState state, Level worldIn, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit) {
+        ItemStack itemstack = player.getItemInHand(handIn);
 
-			if (prominentEffects.size() == 1)
-				potionstack.setHoverName(Component.translatable(prominentEffects.get(0).getDescriptionId()));
-			else
-				potionstack.setHoverName(Component.translatable("item.mysticalchemy.concoction"));
+        // Retrieve the tile before updating the block state.
+        if (itemstack.getItem() == Items.WATER_BUCKET) {
+            CrucibleTile tile = (CrucibleTile) worldIn.getBlockEntity(pos);
+            if (tile != null) {
+                tile.printAllIngredientModifiers();
+            }
+            worldIn.setBlock(pos, state.setValue(LayeredCauldronBlock.LEVEL, 3), UPDATE_ALL);
+            return InteractionResult.sidedSuccess(worldIn.isClientSide);
+        }
+        
+        // Check for existing potion brew and allow extraction with a glass bottle.
+        CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
+        if (crucible != null && state.getValue(LEVEL) > 0) {
+            HashMap<MobEffect, Float> prominents = crucible.getProminentEffects();
+            if (prominents.size() > 0) {
+                if (itemstack.getItem() == Items.GLASS_BOTTLE) {
+                    extractPotion(worldIn, prominents, crucible, player, handIn, state, pos);
+                    return InteractionResult.SUCCESS;
+                }
+                // Disable other interactions when a potion brew exists.
+                return InteractionResult.SUCCESS;
+            }
+        }
+        
+        // If using a bucket, clear the crucible.
+        if (itemstack.getItem() == Items.BUCKET) {
+            worldIn.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), UPDATE_ALL);
+            player.setItemInHand(handIn, new ItemStack(Items.WATER_BUCKET));
+            return InteractionResult.sidedSuccess(worldIn.isClientSide);
+        }
+        
+        return InteractionResult.FAIL;
+    }
+    
+    private void extractPotion(Level worldIn, HashMap<MobEffect, Float> prominents, CrucibleTile crucible, Player player, InteractionHand handIn, BlockState state, BlockPos pos) {
+        if (!worldIn.isClientSide) {
+            List<MobEffectInstance> prominentEffects = new ArrayList<>();
 
-			player.getItemInHand(handIn).shrink(1);
-			if (!player.addItem(potionstack)) {
-				player.drop(potionstack, false);
-			}
+            ItemStack potionstack = createBasePotionStack(crucible);
 
-			int existingLevel = state.getValue(LEVEL);
-			if (existingLevel == 1) {
-				worldIn.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), 3);
-			}else {
-				worldIn.setBlock(pos, state.setValue(LEVEL, existingLevel - 1), 3);
-			}
-			
-		}
-	}
-	
-	private ItemStack createBasePotionStack(CrucibleTile crucible) {
-		Item outputPotionItem;
-		
-		if (crucible.isLingering()) {
-			outputPotionItem = Items.LINGERING_POTION;
-		}else if (crucible.isSplash()) {
-			outputPotionItem = Items.SPLASH_POTION;
-		}else {
-			outputPotionItem = Items.POTION;
-		}
-		
-		return new ItemStack(outputPotionItem);
-	}
-	
-	@Override
-	public RenderShape getRenderShape(BlockState pState) {
-		return RenderShape.MODEL;
-	}
+            prominents.forEach((e, f) -> {
+                prominentEffects.add(new MobEffectInstance(e, e.isInstantenous() ? 1 : crucible.getDuration(), (int) Math.floor(f - 1)));
+            });
+            PotionUtils.setPotion(potionstack, Potions.WATER);
+            PotionUtils.setCustomEffects(potionstack, prominentEffects);
+            
+            /*CompoundTag tag = potionstack.getOrCreateTag();
+            tag.put("hide_additional_tooltip", new CompoundTag());
+            tag.putInt("HideFlags", 127);*/
 
+            potionstack.setHoverName(Component.translatable("item.mysticalchemy.concoction"));
+
+            player.getItemInHand(handIn).shrink(1);
+            if (!player.addItem(potionstack)) {
+                player.drop(potionstack, false);
+            }
+
+            int existingLevel = state.getValue(LEVEL);
+            if (existingLevel == 1) {
+                worldIn.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), 3);
+            } else {
+                worldIn.setBlock(pos, state.setValue(LEVEL, existingLevel - 1), 3);
+            }
+        }
+    }
+    
+    private ItemStack createBasePotionStack(CrucibleTile crucible) {
+        Item outputPotionItem;
+        
+        if (crucible.isLingering()) {
+            outputPotionItem = Items.LINGERING_POTION;
+        } else if (crucible.isSplash()) {
+            outputPotionItem = Items.SPLASH_POTION;
+        } else {
+            outputPotionItem = Items.POTION;
+        }
+        
+        return new ItemStack(outputPotionItem);
+    }
+    
+    @Override
+    public RenderShape getRenderShape(BlockState pState) {
+        return RenderShape.MODEL;
+    }
 }
