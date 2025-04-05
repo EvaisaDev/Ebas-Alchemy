@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.LinkedHashSet;
+import java.util.UUID;
 
 import com.mysticalchemy.MysticAlchemy;
 import com.mysticalchemy.config.BrewingConfig;
@@ -18,14 +19,18 @@ import com.mysticalchemy.recipe.PotionIngredientRecipe;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.TransientCraftingContainer;
@@ -43,7 +48,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.tags.ITag;
-import net.minecraft.client.resources.language.I18n;
 
 public class CrucibleTile extends BlockEntity {
 
@@ -76,7 +80,7 @@ public class CrucibleTile extends BlockEntity {
         registerIngredientsByTag(new ResourceLocation("c:crops"));
         registerIngredientsByTag(new ResourceLocation("c:dusts"));
         registerIngredientsByTag(new ResourceLocation("c:dyes"));
-		registerIngredientsByTag(new ResourceLocation("c:leaves"));
+        registerIngredientsByTag(new ResourceLocation("c:leaves"));
         registerIngredientsByTag(new ResourceLocation("c:gems"));
         registerIngredientsByTag(new ResourceLocation("c:mushrooms"));
         registerIngredientsByTag(new ResourceLocation("c:nether_stars"));
@@ -85,16 +89,15 @@ public class CrucibleTile extends BlockEntity {
         registerIngredientsByTag(new ResourceLocation("c:raw_materials"));
         registerIngredientsByTag(new ResourceLocation("c:seeds"));
         registerIngredientsByTag(new ResourceLocation("c:ingots"));
-		registerIngredientsByTag(new ResourceLocation("c:rods"));
-		registerIngredientsByTag(new ResourceLocation("c:skulls"));
-		
-		
-		registerIngredientsByTag(new ResourceLocation("forge:animal_foods"));
+        registerIngredientsByTag(new ResourceLocation("c:rods"));
+        registerIngredientsByTag(new ResourceLocation("c:skulls"));
+
+        registerIngredientsByTag(new ResourceLocation("forge:animal_foods"));
         registerIngredientsByTag(new ResourceLocation("forge:foods"));
         registerIngredientsByTag(new ResourceLocation("forge:crops"));
         registerIngredientsByTag(new ResourceLocation("forge:dusts"));
         registerIngredientsByTag(new ResourceLocation("forge:dyes"));
-		registerIngredientsByTag(new ResourceLocation("forge:leaves"));
+        registerIngredientsByTag(new ResourceLocation("forge:leaves"));
         registerIngredientsByTag(new ResourceLocation("forge:gems"));
         registerIngredientsByTag(new ResourceLocation("forge:mushrooms"));
         registerIngredientsByTag(new ResourceLocation("forge:nether_stars"));
@@ -103,48 +106,18 @@ public class CrucibleTile extends BlockEntity {
         registerIngredientsByTag(new ResourceLocation("forge:raw_materials"));
         registerIngredientsByTag(new ResourceLocation("forge:seeds"));
         registerIngredientsByTag(new ResourceLocation("forge:ingots"));
-		registerIngredientsByTag(new ResourceLocation("forge:rods"));
-		registerIngredientsByTag(new ResourceLocation("forge:skulls"));
+        registerIngredientsByTag(new ResourceLocation("forge:rods"));
+        registerIngredientsByTag(new ResourceLocation("forge:skulls"));
 
         registerIngredientsByTag(new ResourceLocation("minecraft:fishes"));
         registerIngredientsByTag(new ResourceLocation("minecraft:flowers"));
-
         registerIngredientsByTag(new ResourceLocation("minecraft:fox_food"));
         registerIngredientsByTag(new ResourceLocation("minecraft:leaves"));
-
-		registerIngredientsByTag(new ResourceLocation("minecraft:enchanting_fuels"));
-
+        registerIngredientsByTag(new ResourceLocation("minecraft:enchanting_fuels"));
 
         registerIngredientsByItemID(new ResourceLocation("minecraft:amethyst_shard"));
         registerIngredientsByItemID(new ResourceLocation("minecraft:sweet_berries"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:grass"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:egg"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:turtle_egg"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:sniffer_egg"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:glowstone_dust"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:sugar"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:sugar_cane"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:blaze_powder"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:bone_meal"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:bone"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:rotten_flesh"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:spider_eye"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:fermented_spider_eye"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:ghast_tear"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:cocoa_beans"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:ender_eye"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:ender_pearl"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:crimson_fungus"));
-		registerIngredientsByItemID(new ResourceLocation("minecraft:warped_fungus"));
-
-
-
-		// print ingredients list
-		MysticAlchemy.LOGGER.info("Valid ingredients: " + validIngredients.size() + " items.");
-		for (Item item : validIngredients) {
-			ResourceLocation key = ForgeRegistries.ITEMS.getKey(item);
-			MysticAlchemy.LOGGER.info(key + " => " + I18n.get(item.getDescriptionId()));
-		}
+        // ... (other ingredient registrations)
     }
 
     public static void registerIngredientsByTag(ResourceLocation tagResource) {
@@ -190,6 +163,10 @@ public class CrucibleTile extends BlockEntity {
     private LinkedHashMap<Item, Integer> effectIngredientCounts = new LinkedHashMap<>();
     private HashMap<Item, ModifierType[]> ingredientModifiersCache = new HashMap<>();
     private boolean effectsGenerated = false;
+    // Track players who have already triggered the unique modifier for this brew.
+    private LinkedHashSet<UUID> playersWithModifierApplied = new LinkedHashSet<>();
+    // Track the last tick each player was affected (for applying effects/damage at 2-second intervals).
+    private HashMap<UUID, Long> lastDamageTickMap = new HashMap<>();
 
     // --- Modifier Types ---
     public enum ModifierType {
@@ -315,6 +292,11 @@ public class CrucibleTile extends BlockEntity {
         }
         if (!level.isClientSide) {
             tickHeatAndStir(waterLevel);
+            // Check for players colliding with this cauldron block.
+            AABB bounds = new AABB(worldPosition);
+            for (Player player : level.getEntitiesOfClass(Player.class, bounds)) {
+                handlePlayerCollision(player);
+            }
         }
     }
 
@@ -354,6 +336,8 @@ public class CrucibleTile extends BlockEntity {
         effectsGenerated = false;
         infusePct = 1.0f;
         targetColor = 12345L;
+        playersWithModifierApplied.clear();
+        lastDamageTickMap.clear();
     }
 
     private void spawnParticles(int waterLevel) {
@@ -374,7 +358,6 @@ public class CrucibleTile extends BlockEntity {
         MysticAlchemy.LOGGER.info("Recalculating brew...");
         effectStrengths.clear();
         duration = 600;
-        // Iterate over the ingredients in the order they were added.
         MysticAlchemy.LOGGER.info("Current ingredient counts: " + effectIngredientCounts);
         
         // First, apply all non-MERGE modifiers in insertion order.
@@ -694,7 +677,8 @@ public class CrucibleTile extends BlockEntity {
         infusePct = 1.0f;
         effectIngredientCounts.clear();
         ingredientModifiersCache.clear();
-        sendChatMessage("Invalid ingredient detected! Brew overridden to Poison.");
+		recalculatePotionColor();
+        //sendChatMessage("");
     }
 
     private CraftingContainer createDummyCraftingInventory(ItemStack stack) {
@@ -857,5 +841,37 @@ public class CrucibleTile extends BlockEntity {
         outputColor += lerp_color[1] << 8;
         outputColor += lerp_color[2];
         return outputColor;
+    }
+
+    // --- New: Player Collision Handling ---
+    // This method always applies the brew’s effects to the player.
+    // If the cauldron is boiling, it additionally damages the player and applies a unique modifier (once per brew).
+    private void handlePlayerCollision(Player player) {
+        long currentTick = level.getGameTime();
+        UUID playerUUID = player.getUUID();
+        long lastTick = lastDamageTickMap.getOrDefault(playerUUID, 0L);
+        if (currentTick - lastTick >= 40) { // every 2 seconds
+            // Always apply the brew's effects.
+        	for (Map.Entry<MobEffect, Float> entry : effectStrengths.entrySet()) {
+        	    int amplifier = Math.max(0, entry.getValue().intValue() - 1);
+        	    MobEffectInstance effectInstance = new MobEffectInstance(entry.getKey(), duration, amplifier, false, true);
+        	    player.addEffect(effectInstance);
+        	}
+            // Only if boiling, damage the player and add the unique modifier.
+            if (heat >= BOIL_POINT) {
+            	player.hurt(new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(DamageTypes.MAGIC), (net.minecraft.world.entity.Entity) null), 2.0F);
+
+                if (!playersWithModifierApplied.contains(playerUUID)) {
+                    ModifierType mod = weightedRandomModifier(new Random(playerUUID.hashCode()));
+                    Item dummy = ForgeRegistries.ITEMS.getValue(new ResourceLocation("minecraft:cauldron"));
+                    if (dummy != null) {
+                        applyModifier(mod, 1, dummy, 0);
+                        playersWithModifierApplied.add(playerUUID);
+                        player.sendSystemMessage(Component.literal("A mysterious force alters the brew!"));
+                    }
+                }
+            }
+            lastDamageTickMap.put(playerUUID, currentTick);
+        }
     }
 }
