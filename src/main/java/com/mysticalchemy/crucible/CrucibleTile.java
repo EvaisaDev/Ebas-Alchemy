@@ -24,6 +24,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -666,20 +668,70 @@ public class CrucibleTile extends BlockEntity {
         }
     }
 
-    private void applyInvalidIngredientOutcome() {
-        MysticAlchemy.LOGGER.info("applyInvalidIngredientOutcome: Invalid ingredient or error.");
-        effectStrengths.clear();
-        MobEffect poison = ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation("minecraft:poison"));
-        if (poison != null) {
-            effectStrengths.put(poison, (float) MAX_MAGNITUDE);
-        }
-        targetColor = 0;
-        infusePct = 1.0f;
-        effectIngredientCounts.clear();
-        ingredientModifiersCache.clear();
+	private void applyInvalidIngredientOutcome() {
+		MysticAlchemy.LOGGER.info("applyInvalidIngredientOutcome: Invalid ingredient or error.");
+		effectStrengths.clear();
+		MobEffect poison = ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation("minecraft:poison"));
+		if (poison != null) {
+			effectStrengths.put(poison, (float) MAX_MAGNITUDE);
+		}
+		targetColor = 0;
+		infusePct = 1.0f;
+		effectIngredientCounts.clear();
+		ingredientModifiersCache.clear();
 		recalculatePotionColor();
-        //sendChatMessage("");
-    }
+
+		// Sound effect on the server
+		if (!level.isClientSide) {
+			level.playSound(null, getBlockPos(), SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.BLOCKS, 1.0F, 1.0F);
+
+			// Spawn purple "poof" particles server-side so clients see them
+			if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+				for (int i = 0; i < 20; i++) {
+					double offsetX = getBlockPos().getX() + 0.5 + (serverLevel.random.nextDouble() - 0.5) * 0.5;
+					double offsetY = getBlockPos().getY() + 1.2; // a bit above the cauldron
+					double offsetZ = getBlockPos().getZ() + 0.5 + (serverLevel.random.nextDouble() - 0.5) * 0.5;
+					
+					// ParticleTypes.WITCH gives a purple swirl effect
+					serverLevel.sendParticles(
+							ParticleTypes.WITCH,
+							offsetX, offsetY, offsetZ,
+							1,      // count
+							0, 0, 0, // x/y/z speed
+							0       // speed variance
+					);
+				}
+			}
+		}
+	}
+
+	public void diluteBrew() {
+		// Halve the duration
+		this.duration /= 2;
+		if (this.duration < 1) {
+			this.duration = 1; // Just to avoid weird zero duration
+		}
+
+		// Decrement each effect by 1. Remove if < 1.
+		HashMap<MobEffect, Float> newMap = new HashMap<>();
+		for (Map.Entry<MobEffect, Float> entry : effectStrengths.entrySet()) {
+			float newVal = entry.getValue() - 1.0F;
+			if (newVal >= 1.0F) {
+				newMap.put(entry.getKey(), newVal);
+			}
+		}
+		effectStrengths.clear();
+		effectStrengths.putAll(newMap);
+
+		// If no effects remain, reset to "just water."
+		if (effectStrengths.isEmpty()) {
+			resetPotion();
+		} else {
+			recalculatePotionColor();
+		}
+	}
+
+
 
     private CraftingContainer createDummyCraftingInventory(ItemStack stack) {
         CraftingContainer craftinginventory = new TransientCraftingContainer(new AbstractContainerMenu((net.minecraft.world.inventory.MenuType<?>) null, -1) {
@@ -867,7 +919,7 @@ public class CrucibleTile extends BlockEntity {
                     if (dummy != null) {
                         applyModifier(mod, 1, dummy, 0);
                         playersWithModifierApplied.add(playerUUID);
-                        player.sendSystemMessage(Component.literal("A mysterious force alters the brew!"));
+                        //player.sendSystemMessage(Component.literal("A mysterious force alters the brew!"));
                     }
                 }
             }

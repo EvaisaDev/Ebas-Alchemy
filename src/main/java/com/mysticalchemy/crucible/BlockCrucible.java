@@ -95,43 +95,68 @@ public class BlockCrucible extends LayeredCauldronBlock implements EntityBlock, 
         }
     }
     
-    @Override
-    public InteractionResult use(BlockState state, Level worldIn, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit) {
-        ItemStack itemstack = player.getItemInHand(handIn);
+	@Override
+	public InteractionResult use(BlockState state, Level worldIn, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit) {
+		// The item currently in the player's hand
+		ItemStack itemstack = player.getItemInHand(handIn);
+		// Get our crucible tile entity
+		CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
+		if (crucible == null) {
+			return InteractionResult.FAIL;
+		}
 
-        // Retrieve the tile before updating the block state.
-        if (itemstack.getItem() == Items.WATER_BUCKET) {
-            CrucibleTile tile = (CrucibleTile) worldIn.getBlockEntity(pos);
-            if (tile != null) {
-                tile.printAllIngredientModifiers();
-            }
-            worldIn.setBlock(pos, state.setValue(LayeredCauldronBlock.LEVEL, 3), UPDATE_ALL);
-            return InteractionResult.sidedSuccess(worldIn.isClientSide);
-        }
-        
-        // Check for existing potion brew and allow extraction with a glass bottle.
-        CrucibleTile crucible = (CrucibleTile) worldIn.getBlockEntity(pos);
-        if (crucible != null && state.getValue(LEVEL) > 0) {
-            HashMap<MobEffect, Float> prominents = crucible.getProminentEffects();
-            if (prominents.size() > 0) {
-                if (itemstack.getItem() == Items.GLASS_BOTTLE) {
-                    extractPotion(worldIn, prominents, crucible, player, handIn, state, pos);
-                    return InteractionResult.SUCCESS;
-                }
-                // Disable other interactions when a potion brew exists.
-                return InteractionResult.SUCCESS;
-            }
-        }
-        
-        // If using a bucket, clear the crucible.
-        if (itemstack.getItem() == Items.BUCKET) {
-            worldIn.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), UPDATE_ALL);
-            player.setItemInHand(handIn, new ItemStack(Items.WATER_BUCKET));
-            return InteractionResult.sidedSuccess(worldIn.isClientSide);
-        }
-        
-        return InteractionResult.FAIL;
-    }
+		// ------------------------------------------------
+		// 1) USING A WATER BUCKET ON THE CRUCIBLE
+		// ------------------------------------------------
+		if (itemstack.is(Items.WATER_BUCKET)) {
+			// If the crucible has an active potion brew...
+			if (crucible.isPotion()) {
+				// Dilute the brew
+				crucible.diluteBrew();
+				// Fill the cauldron visually to level 3
+				worldIn.setBlock(pos, state.setValue(LayeredCauldronBlock.LEVEL, 3), UPDATE_ALL);
+				// Optional: play a small splash sound
+				worldIn.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 1.0F, 1.0F);
+				// Return success so default CauldronInteraction logic can finish
+				return InteractionResult.sidedSuccess(worldIn.isClientSide);
+			} else {
+				// No potion in the crucible, so just fill with water
+				worldIn.setBlock(pos, state.setValue(LayeredCauldronBlock.LEVEL, 3), UPDATE_ALL);
+				return InteractionResult.sidedSuccess(worldIn.isClientSide);
+			}
+		}
+
+		// ------------------------------------------------
+		// 2) EXTRACT A POTION WITH A GLASS BOTTLE
+		// ------------------------------------------------
+		if (crucible.isPotion() && state.getValue(LEVEL) > 0) {
+			HashMap<MobEffect, Float> prominents = crucible.getProminentEffects();
+			if (!prominents.isEmpty()) {
+				// If the player is holding a glass bottle
+				if (itemstack.is(Items.GLASS_BOTTLE)) {
+					extractPotion(worldIn, prominents, crucible, player, handIn, state, pos);
+					return InteractionResult.SUCCESS;
+				}
+				// If a potion brew exists, but it's not a bottle in hand,
+				// we simply block other interactions so items aren't lost.
+				return InteractionResult.SUCCESS;
+			}
+		}
+
+		// ------------------------------------------------
+		// 3) EMPTY THE CRUCIBLE WITH AN EMPTY BUCKET
+		// ------------------------------------------------
+		if (itemstack.is(Items.BUCKET)) {
+			// Remove all water/potion from the crucible
+			worldIn.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), UPDATE_ALL);
+			// Let vanilla handle converting the Bucket -> Water Bucket, if applicable
+			return InteractionResult.sidedSuccess(worldIn.isClientSide);
+		}
+
+		// Nothing else handled
+		return InteractionResult.FAIL;
+	}
+
     
     private void extractPotion(Level worldIn, HashMap<MobEffect, Float> prominents, CrucibleTile crucible, Player player, InteractionHand handIn, BlockState state, BlockPos pos) {
         if (!worldIn.isClientSide) {
