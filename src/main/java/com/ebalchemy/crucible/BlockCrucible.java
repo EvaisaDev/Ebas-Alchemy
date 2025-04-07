@@ -8,6 +8,7 @@ import com.ebalchemy.init.TileEntityInit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.cauldron.CauldronInteraction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -119,6 +120,7 @@ public class BlockCrucible extends LayeredCauldronBlock implements EntityBlock, 
         int fillLevel = state.getValue(LEVEL);
 
         if (itemstack.is(Items.WATER_BUCKET)) {
+        	crucible.printIngredientPotentialEffects();
             if (crucible.isPotion()) {
                 crucible.diluteBrew();
                 worldIn.setBlock(pos, state.setValue(LEVEL, 3), UPDATE_ALL);
@@ -192,6 +194,7 @@ public class BlockCrucible extends LayeredCauldronBlock implements EntityBlock, 
 
         if (itemstack.is(Items.BUCKET)) {
             worldIn.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), UPDATE_ALL);
+			
             return InteractionResult.sidedSuccess(worldIn.isClientSide);
         }
 
@@ -252,6 +255,11 @@ public class BlockCrucible extends LayeredCauldronBlock implements EntityBlock, 
 
             // Rename it
             potionstack.setHoverName(Component.translatable("item.ebalchemy.concoction"));
+
+			// hide potion effects in tooltip by adding hide_additional_tooltip={} to the nbt
+			CompoundTag tag = potionstack.getOrCreateTag();
+            tag.put("hide_additional_tooltip", new CompoundTag());
+            tag.putInt("HideFlags", 127);
 
             // Remove 1 glass bottle
             player.getItemInHand(handIn).shrink(1);

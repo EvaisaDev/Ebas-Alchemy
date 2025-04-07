@@ -80,15 +80,70 @@ public class CrucibleTile extends BlockEntity {
         heaters.put(Blocks.SOUL_CAMPFIRE,  30.0f);
         heaters.put(Blocks.ICE,           - 2.0f);
 
-        // Examples of registering "valid" items via tags or direct IDs
         registerIngredientsByTag(new ResourceLocation("c:animal_foods"));
         registerIngredientsByTag(new ResourceLocation("c:foods"));
         registerIngredientsByTag(new ResourceLocation("c:crops"));
-        // ... etc. Add or remove as you wish ...
+        registerIngredientsByTag(new ResourceLocation("c:dusts"));
+        registerIngredientsByTag(new ResourceLocation("c:dyes"));
+        registerIngredientsByTag(new ResourceLocation("c:leaves"));
+        registerIngredientsByTag(new ResourceLocation("c:gems"));
+        registerIngredientsByTag(new ResourceLocation("c:mushrooms"));
+        registerIngredientsByTag(new ResourceLocation("c:nether_stars"));
+        registerIngredientsByTag(new ResourceLocation("c:nuggets"));
+        registerIngredientsByTag(new ResourceLocation("c:ender_pearls"));
+        registerIngredientsByTag(new ResourceLocation("c:raw_materials"));
+        registerIngredientsByTag(new ResourceLocation("c:seeds"));
+        registerIngredientsByTag(new ResourceLocation("c:ingots"));
+        registerIngredientsByTag(new ResourceLocation("c:rods"));
+        registerIngredientsByTag(new ResourceLocation("c:skulls"));
 
-        // Direct item registrations
+        registerIngredientsByTag(new ResourceLocation("forge:animal_foods"));
+        registerIngredientsByTag(new ResourceLocation("forge:foods"));
+        registerIngredientsByTag(new ResourceLocation("forge:crops"));
+        registerIngredientsByTag(new ResourceLocation("forge:dusts"));
+        registerIngredientsByTag(new ResourceLocation("forge:dyes"));
+        registerIngredientsByTag(new ResourceLocation("forge:leaves"));
+        registerIngredientsByTag(new ResourceLocation("forge:gems"));
+        registerIngredientsByTag(new ResourceLocation("forge:mushrooms"));
+        registerIngredientsByTag(new ResourceLocation("forge:nether_stars"));
+        registerIngredientsByTag(new ResourceLocation("forge:nuggets"));
+        registerIngredientsByTag(new ResourceLocation("forge:ender_pearls"));
+        registerIngredientsByTag(new ResourceLocation("forge:raw_materials"));
+        registerIngredientsByTag(new ResourceLocation("forge:seeds"));
+        registerIngredientsByTag(new ResourceLocation("forge:ingots"));
+        registerIngredientsByTag(new ResourceLocation("forge:rods"));
+        registerIngredientsByTag(new ResourceLocation("forge:skulls"));
+
+        registerIngredientsByTag(new ResourceLocation("minecraft:fishes"));
+        registerIngredientsByTag(new ResourceLocation("minecraft:flowers"));
+
+        registerIngredientsByTag(new ResourceLocation("minecraft:fox_food"));
+        registerIngredientsByTag(new ResourceLocation("minecraft:leaves"));
+
+		registerIngredientsByTag(new ResourceLocation("minecraft:enchanting_fuels"));
+
+
         registerIngredientsByItemID(new ResourceLocation("minecraft:amethyst_shard"));
         registerIngredientsByItemID(new ResourceLocation("minecraft:sweet_berries"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:grass"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:egg"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:turtle_egg"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:sniffer_egg"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:glowstone_dust"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:sugar"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:sugar_cane"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:blaze_powder"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:bone_meal"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:bone"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:rotten_flesh"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:spider_eye"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:fermented_spider_eye"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:ghast_tear"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:cocoa_beans"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:ender_eye"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:ender_pearl"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:crimson_fungus"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:warped_fungus"));
     }
 
     public static void registerIngredientsByTag(ResourceLocation tagResource) {
@@ -1014,5 +1069,50 @@ public class CrucibleTile extends BlockEntity {
         effectStrengths.putAll(combinedMap);
 
         recalculatePotionColor();
+    }
+
+	/**
+     * Debug method that lists each valid ingredient along with its modifiers.
+     * For each ADD_EFFECT modifier, it simulates the selection process and prints
+     * the specific MobEffect (by its resource location) that would be added.
+     */
+    public void printIngredientPotentialEffects() {
+        StringBuilder output = new StringBuilder("Ingredient Potential Effects:\n");
+        for (Item ingredient : validIngredients) {
+            ResourceLocation ingrKey = ForgeRegistries.ITEMS.getKey(ingredient);
+            if (ingrKey == null) continue;
+            output.append("Ingredient: ").append(ingrKey.toString()).append("\n");
+
+            ModifierType[] mods = getModifiersForIngredient(ingredient);
+            for (int i = 0; i < mods.length; i++) {
+                ModifierType mod = mods[i];
+                output.append("  Modifier[").append(i).append("]: ").append(mod.toString());
+                if (mod == ModifierType.ADD_EFFECT) {
+                    // Simulate the random selection as in applyModifier:
+                    long seed = getWorldSeed();
+                    seed ^= ingrKey.toString().hashCode();
+                    seed ^= mod.ordinal();
+                    seed ^= (i + 1);
+                    Random random = new Random(seed);
+                    
+                    // Get all available effects and sort them by their resource location string
+                    ArrayList<MobEffect> allEffects = new ArrayList<>(ForgeRegistries.MOB_EFFECTS.getValues());
+                    allEffects.sort(Comparator.comparing(e -> ForgeRegistries.MOB_EFFECTS.getKey(e).toString()));
+                    
+                    if (!allEffects.isEmpty()) {
+                        MobEffect chosen = allEffects.get(random.nextInt(allEffects.size()));
+                        ResourceLocation effectKey = ForgeRegistries.MOB_EFFECTS.getKey(chosen);
+                        output.append(" -> Adds effect: ")
+                              .append(effectKey != null ? effectKey.toString() : chosen.toString());
+                    } else {
+                        output.append(" -> Adds effect: <none>");
+                    }
+                }
+                output.append("\n");
+            }
+        }
+        // Output the result (e.g., to console and logger)
+        System.out.println(output.toString());
+        EbAlchemy.LOGGER.info(output.toString());
     }
 }
