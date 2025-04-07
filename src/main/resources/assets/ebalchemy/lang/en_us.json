@@ -1,0 +1,13 @@
+{
+	"itemGroup.ebalchemy": "Ebalchemy",
+
+	"block.ebalchemy.crucible": "Alchemy Cauldron",
+	"block.ebalchemy.crucible_empty": "Alchemy Cauldron",
+
+	"item.ebalchemy.concoction": "Strange Concoction",
+	"item.ebalchemy.crucible_spoon": "Alchemist's Spoon",
+	
+	"chat.ebalchemy.no_effects": "There are no effects in the potion.",
+	"chat.ebalchemy.no_notable_effects": "There are no effects in the potion that this kit can read.",
+	"chat.ebalchemy.format_effect": "%s: %s"
+}

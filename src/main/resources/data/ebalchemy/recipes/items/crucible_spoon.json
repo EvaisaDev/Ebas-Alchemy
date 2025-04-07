@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+  	"  P",
+  	" S ",
+  	"A  "
+  ],
+  "key": {
+  	"S": {
+  		"item": "minecraft:stick"
+  	},
+  	"A": {
+  		"tag": "minecraft:amethyst_shard"
+  	},
+  	"P": {
+  		"tag": "minecraft:planks"
+  	}
+  },
+  "result": {
+    "item": "ebalchemy:crucible_spoon"   
+  }
+}
