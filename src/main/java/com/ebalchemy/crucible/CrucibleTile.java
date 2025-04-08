@@ -96,7 +96,10 @@ public class CrucibleTile extends BlockEntity {
         registerIngredientsByTag(new ResourceLocation("c:ingots"));
         registerIngredientsByTag(new ResourceLocation("c:rods"));
         registerIngredientsByTag(new ResourceLocation("c:skulls"));
-
+        registerIngredientsByTag(new ResourceLocation("c:compostable"));
+		registerIngredientsByTag(new ResourceLocation("c:slimeballs"));
+		registerIngredientsByTag(new ResourceLocation("c:quartz"));
+        
         registerIngredientsByTag(new ResourceLocation("forge:animal_foods"));
         registerIngredientsByTag(new ResourceLocation("forge:foods"));
         registerIngredientsByTag(new ResourceLocation("forge:crops"));
@@ -113,7 +116,11 @@ public class CrucibleTile extends BlockEntity {
         registerIngredientsByTag(new ResourceLocation("forge:ingots"));
         registerIngredientsByTag(new ResourceLocation("forge:rods"));
         registerIngredientsByTag(new ResourceLocation("forge:skulls"));
-
+        registerIngredientsByTag(new ResourceLocation("forge:compostable"));
+		registerIngredientsByTag(new ResourceLocation("forge:slimeballs"));
+		registerIngredientsByTag(new ResourceLocation("forge:quartz"));
+		registerIngredientsByTag(new ResourceLocation("forge:books"));
+        
         registerIngredientsByTag(new ResourceLocation("minecraft:fishes"));
         registerIngredientsByTag(new ResourceLocation("minecraft:flowers"));
 
@@ -121,6 +128,16 @@ public class CrucibleTile extends BlockEntity {
         registerIngredientsByTag(new ResourceLocation("minecraft:leaves"));
 
 		registerIngredientsByTag(new ResourceLocation("minecraft:enchanting_fuels"));
+		
+        registerIngredientsByTag(new ResourceLocation("mushroom_quest:mushrooms"));
+
+		registerIngredientsByTag(new ResourceLocation("supplementaries:throwable_bricks"));
+
+		registerIngredientsByTag(new ResourceLocation("incendium:brewing_ingredients"));
+
+		registerIngredientsByTag(new ResourceLocation("quark:shards"));
+
+		registerIngredientsByTag(new ResourceLocation("biomancy:sugars"));
 
 
         registerIngredientsByItemID(new ResourceLocation("minecraft:amethyst_shard"));
@@ -144,6 +161,30 @@ public class CrucibleTile extends BlockEntity {
 		registerIngredientsByItemID(new ResourceLocation("minecraft:ender_pearl"));
 		registerIngredientsByItemID(new ResourceLocation("minecraft:crimson_fungus"));
 		registerIngredientsByItemID(new ResourceLocation("minecraft:warped_fungus"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:heart_of_the_sea"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:echo_shard"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:popped_chorus_fruit"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:glow_ink_sac"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:ink_sac"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:nether_wart"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:blaze_rod"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:phantom_membrane"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:shulker_shell"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:nautilus_shell"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:nether_star"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:rabbit_foot"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:pufferfish"));
+		registerIngredientsByItemID(new ResourceLocation("minecraft:spider_eye"));
+
+
+		registerIngredientsByItemID(new ResourceLocation("supplementaries:soap"));
+		registerIngredientsByItemID(new ResourceLocation("supplementaries:ash"));
+		
+
+		registerIngredientsByItemID(new ResourceLocation("quark:moss_paste"));
+		registerIngredientsByItemID(new ResourceLocation("quark:glowstone_dust"));
+		registerIngredientsByItemID(new ResourceLocation("quark:crab_shell"));
+
     }
 
     public static void registerIngredientsByTag(ResourceLocation tagResource) {
