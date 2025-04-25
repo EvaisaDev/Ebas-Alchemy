@@ -303,7 +303,8 @@ public class BlockCrucible extends LayeredCauldronBlock
             CompoundTag tag = potionStack.getOrCreateTag();
             tag.put("hide_additional_tooltip", new CompoundTag());
             tag.putInt("HideFlags", 127);
-
+            tag.putBoolean("ebalchemy:hide_desc", true);  
+            
             player.getItemInHand(hand).shrink(1);
             if (!player.addItem(potionStack)) player.drop(potionStack, false);
 

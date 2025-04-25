@@ -129,7 +129,7 @@ public class CrucibleTile extends BlockEntity {
 
 		registerIngredientsByTag(new ResourceLocation("minecraft:enchanting_fuels"));
 		
-        registerIngredientsByTag(new ResourceLocation("mushroom_quest:mushrooms"));
+        registerIngredientsByTag(new ResourceLocation("mushroomquest:mushrooms"));
 
 		registerIngredientsByTag(new ResourceLocation("supplementaries:throwable_bricks"));
 
@@ -185,6 +185,9 @@ public class CrucibleTile extends BlockEntity {
 		registerIngredientsByItemID(new ResourceLocation("quark:glowstone_dust"));
 		registerIngredientsByItemID(new ResourceLocation("quark:crab_shell"));
 
+		registerIngredientsByNamePartial("mushroom");
+		registerIngredientsByNamePartial("shroom");
+
     }
 
     public static void registerIngredientsByTag(ResourceLocation tagResource) {
@@ -204,6 +207,17 @@ public class CrucibleTile extends BlockEntity {
             validIngredients.add(item);
         }
     }
+
+	public static void registerIngredientsByNamePartial(String name) {
+		ForgeRegistries.ITEMS.getKeys().forEach(itemID -> {
+			if (itemID.getPath().contains(name)) {
+				Item item = ForgeRegistries.ITEMS.getValue(itemID);
+				if (item != null && !validIngredients.contains(item)) {
+					validIngredients.add(item);
+				}
+			}
+		});
+	}
 
     // Standard Ticker
     public static void Tick(Level level, BlockPos pos, BlockState state, CrucibleTile blockEntity) {
