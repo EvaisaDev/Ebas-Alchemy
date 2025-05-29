@@ -87,6 +87,10 @@ repositories {
             includeGroup "curse.maven"
         }
     }
+   	maven {
+	    name = "Illusive Soulworks maven"
+	    url = "https://maven.theillusivec4.top/"
+	}
     flatDir {
         dirs "libs"
     }
@@ -98,6 +102,10 @@ dependencies {
     // these mods are included only for the purpose of testing
     runtimeOnly fg.deobf("curse.maven:jei-${jei_projectId}:${jei_fileId}")
     runtimeOnly fg.deobf("curse.maven:betteradvancements-${advancements_projectId}:${advancements_fileId}")
+    // Compile against only the API artifact
+    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}:api")
+    // Use the full Curios API jar at runtime
+    runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
 }
 
 tasks.withType(ProcessResources).configureEach {

@@ -3,6 +3,8 @@ package com.ebalchemy.crucible;
 import com.ebalchemy.init.BlockInit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.cauldron.CauldronInteraction;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -16,6 +18,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.AbstractCauldronBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
@@ -70,6 +73,20 @@ public class BlockEmptyCrucible extends AbstractCauldronBlock {
 				pLevel.playSound(null, pPos, net.minecraft.sounds.SoundEvents.GENERIC_SPLASH,
 								net.minecraft.sounds.SoundSource.BLOCKS, 1.0F, 1.0F);
 			}
+            return InteractionResult.sidedSuccess(pLevel.isClientSide);
+        }
+        
+        if (itemstack.getItem() instanceof BrewCharmItem charm) {
+            if (!pLevel.isClientSide && charm.hasBrew(itemstack)) {
+                pLevel.setBlock(pPos,
+                    BlockInit.CRUCIBLE.get().defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, 1),
+                    UPDATE_ALL);
+                BlockEntity be = pLevel.getBlockEntity(pPos);
+                if (be instanceof CrucibleTile crucible) {
+                    charm.emptyIntoCrucible(itemstack, crucible);
+                }
+                pLevel.playSound(null, pPos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 1.0f, 1.2f);
+            }
             return InteractionResult.sidedSuccess(pLevel.isClientSide);
         }
 

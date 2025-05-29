@@ -1,7 +1,10 @@
 package com.ebalchemy.crucible;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
+import com.ebalchemy.config.BrewingConfig;
 import com.ebalchemy.init.BlockInit;
 import com.ebalchemy.init.TileEntityInit;
 
@@ -9,17 +12,21 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.cauldron.CauldronInteraction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
@@ -35,6 +42,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  *  Custom crucible block.  All client‑only classes are confined to the
@@ -164,7 +172,7 @@ public class BlockCrucible extends LayeredCauldronBlock
         int fillLevel = state.getValue(LEVEL);
 
         /* -- Water bucket: fill or dilute -------------------------------- */
-        if (itemstack.is(Items.WATER_BUCKET)) {
+        if (itemstack.is(Items.WATER_BUCKET) && fillLevel < 3) {
 
             crucible.printIngredientPotentialEffects();
 
@@ -179,6 +187,40 @@ public class BlockCrucible extends LayeredCauldronBlock
                 return InteractionResult.sidedSuccess(world.isClientSide);
             }
         }
+        
+        // ─── NEW: Filling the charm ───
+        if (itemstack.getItem() instanceof BrewCharmItem charm) {
+
+            if (!world.isClientSide) {
+                if (charm.hasBrew(itemstack) && fillLevel < 3) {
+                    // Empty charm into crucible ⇒ increase level by 1
+                    charm.emptyIntoCrucible(itemstack, crucible);
+                    int newLevel = Math.min(fillLevel + 1, 3);
+                    world.setBlock(pos,
+                        state.setValue(LEVEL, newLevel),
+                        UPDATE_ALL);
+                } else if (crucible.isPotion() && fillLevel > 0) {
+                    // Fill charm from crucible ⇒ decrease level by 1
+                    charm.fillFromCrucible(itemstack, crucible);
+                    int newLevel = fillLevel - 1;
+                    if (newLevel <= 0) {
+                        world.setBlock(pos,
+                            BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(),
+                            UPDATE_ALL);
+                    } else {
+                        world.setBlock(pos,
+                            state.setValue(LEVEL, newLevel),
+                            UPDATE_ALL);
+                    }
+                }
+                // Play a feedback sound
+                world.playSound(null, pos,
+                    SoundEvents.GENERIC_SPLASH,
+                    SoundSource.BLOCKS,
+                    1.0f, 1.2f);
+            }
+            return InteractionResult.sidedSuccess(world.isClientSide);
+        }
 
         /* -- Glass bottle: pull potion out -------------------------------- */
         if (crucible.isPotion() && fillLevel > 0 && itemstack.is(Items.GLASS_BOTTLE)) {
@@ -189,6 +231,15 @@ public class BlockCrucible extends LayeredCauldronBlock
                 return InteractionResult.SUCCESS;
             }
         }
+        
+        // ─── DEBUG: empty‐hand prints every registered ingredient ───
+        if (itemstack.isEmpty()) {
+            if (!world.isClientSide) {
+                crucible.debugPrintAllIngredientModifiers();
+            }
+            return InteractionResult.sidedSuccess(world.isClientSide);
+        }
+        
 
         /* -- Edible item: infuse ------------------------------------------ */
         if (crucible.isPotion() && fillLevel > 0 && itemstack.getItem().isEdible()) {
@@ -275,47 +326,54 @@ public class BlockCrucible extends LayeredCauldronBlock
     /* ------------------------------------------------------------------ */
 
     private void extractPotion(Level world, CrucibleTile crucible, Player player,
-                               InteractionHand hand, BlockState state, BlockPos pos) {
+        InteractionHand hand, BlockState state, BlockPos pos) {
+		if (world.isClientSide) return;
+		
+		// 1) Create the correct base potion item (normal/splash/lingering)
+		ItemStack potionStack = createBasePotionStack(crucible);
+		
+		// 2) Pull in each current effect instance directly
+		List<MobEffectInstance> custom = new ArrayList<>();
+		for (MobEffectInstance inst : crucible.getCurrentEffects().values()) {
+			ResourceLocation rl = ForgeRegistries.MOB_EFFECTS.getKey(inst.getEffect());
+			// Only include if level>=1 and not disabled in config
+			if (inst.getAmplifier() + 1 >= 1 && !BrewingConfig.isEffectDisabled(rl)) {
+				custom.add(new MobEffectInstance(
+				 inst.getEffect(),
+				 inst.getDuration(),
+				 inst.getAmplifier(),
+				 inst.isAmbient(),
+				 inst.isVisible()
+				));
+			}
+		}
+		
+		// 3) Apply to the potion stack
+		PotionUtils.setPotion(potionStack, Potions.WATER);
+		PotionUtils.setCustomEffects(potionStack, custom);
+		
+		// 4) Tweak tooltip & name
+		potionStack.setHoverName(Component.translatable("item.ebalchemy.concoction"));
+		CompoundTag tag = potionStack.getOrCreateTag();
+		tag.put("hide_additional_tooltip", new CompoundTag());
+		tag.putInt("HideFlags", 127);
+		tag.putBoolean("ebalchemy:hide_desc", true);
+		
+		// 5) Replace the bottle in the player’s hand
+		player.getItemInHand(hand).shrink(1);
+		if (!player.addItem(potionStack)) {
+		player.drop(potionStack, false);
+		}
+		
+		// 6) Lower the cauldron level or empty it
+		int existingLevel = state.getValue(LEVEL);
+		if (existingLevel == 1) {
+			world.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), UPDATE_ALL);
+		} else {
+			world.setBlock(pos, state.setValue(LEVEL, existingLevel - 1), UPDATE_ALL);
+		}
+	}
 
-        if (!world.isClientSide) {
-
-            ItemStack potionStack = createBasePotionStack(crucible);
-
-            var prominents = crucible.getProminentEffects();
-            var custom     = new java.util.ArrayList<net.minecraft.world.effect.MobEffectInstance>();
-
-            for (var e : prominents.entrySet()) {
-                net.minecraft.world.effect.MobEffect eff = e.getKey();
-                float lvlF = e.getValue();
-                int amplifier = Math.max(0, (int) lvlF - 1);
-
-                custom.add(new net.minecraft.world.effect.MobEffectInstance(eff,
-                                                                             crucible.getDuration(),
-                                                                             amplifier));
-            }
-
-            net.minecraft.world.item.alchemy.PotionUtils.setPotion(potionStack,
-                    net.minecraft.world.item.alchemy.Potions.WATER);
-            net.minecraft.world.item.alchemy.PotionUtils.setCustomEffects(potionStack, custom);
-
-            potionStack.setHoverName(Component.translatable("item.ebalchemy.concoction"));
-
-            CompoundTag tag = potionStack.getOrCreateTag();
-            tag.put("hide_additional_tooltip", new CompoundTag());
-            tag.putInt("HideFlags", 127);
-            tag.putBoolean("ebalchemy:hide_desc", true);  
-            
-            player.getItemInHand(hand).shrink(1);
-            if (!player.addItem(potionStack)) player.drop(potionStack, false);
-
-            int existingLevel = state.getValue(LEVEL);
-            if (existingLevel == 1) {
-                world.setBlock(pos, BlockInit.EMPTY_CRUCIBLE.get().defaultBlockState(), UPDATE_ALL);
-            } else {
-                world.setBlock(pos, state.setValue(LEVEL, existingLevel - 1), UPDATE_ALL);
-            }
-        }
-    }
 
     private ItemStack createBasePotionStack(CrucibleTile crucible) {
         if (crucible.isLingering()) {

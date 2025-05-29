@@ -6,8 +6,14 @@
 
 	"item.ebalchemy.concoction": "Strange Concoction",
 	"item.ebalchemy.crucible_spoon": "Alchemist's Spoon",
+
+	"item.ebalchemy.brew_charm": "Flask Charm",
 	
 	"chat.ebalchemy.no_effects": "There are no effects in the potion.",
 	"chat.ebalchemy.no_notable_effects": "There are no effects in the potion that this kit can read.",
-	"chat.ebalchemy.format_effect": "%s: %s"
+	"chat.ebalchemy.format_effect": "%s: %s",
+
+	"item.ebalchemy.brew_charm.tooltip": "A strange charm with a bottle attached.",
+	"item.ebalchemy.brew_charm.filled": "The bottle is filled with a weird liquid.",
+	"item.ebalchemy.brew_charm.empty": "The bottle is empty."
 }

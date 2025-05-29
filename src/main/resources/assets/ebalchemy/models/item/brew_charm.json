@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "ebalchemy:item/brew_charm",
+	"layer1": "ebalchemy:item/brew_charm_overlay"
+  }
+}

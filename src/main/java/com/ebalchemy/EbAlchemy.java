@@ -37,5 +37,6 @@ public class EbAlchemy {
 		if (FMLEnvironment.dist.isClient()) {
 			modEventBus.register(TileEntityClientInit.class);
 		};
+
 	}
 }

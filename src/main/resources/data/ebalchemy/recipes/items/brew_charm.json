@@ -1,22 +1,22 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-  	"  P",
-  	" S ",
-  	"A  "
+  	"SSS",
+  	"SAS",
+  	" B "
   ],
   "key": {
   	"S": {
-  		"item": "minecraft:stick"
+  		"item": "minecraft:string"
   	},
-  	"P": {
-  		"tag": "minecraft:planks"
+  	"B": {
+  		"item": "minecraft:glass_bottle"
   	},
 	"A": {
 		"item": "minecraft:amethyst_shard"
 	}
   },
   "result": {
-    "item": "ebalchemy:crucible_spoon"   
+    "item": "ebalchemy:brew_charm"   
   }
 }
