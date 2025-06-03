@@ -95,7 +95,7 @@ public class CrucibleTile extends BlockEntity {
         heaters.put(Blocks.ICE,           -2.0f);
 
         // Tag registrations
-        registerIngredientsByTag(new ResourceLocation("c:animal_foods"));
+        /*registerIngredientsByTag(new ResourceLocation("c:animal_foods"));
         registerIngredientsByTag(new ResourceLocation("c:foods"));
         registerIngredientsByTag(new ResourceLocation("c:crops"));
         registerIngredientsByTag(new ResourceLocation("c:dusts"));
@@ -147,6 +147,7 @@ public class CrucibleTile extends BlockEntity {
         registerIngredientsByTag(new ResourceLocation("incendium:brewing_ingredients"));
         registerIngredientsByTag(new ResourceLocation("quark:shards"));
         registerIngredientsByTag(new ResourceLocation("biomancy:sugars"));
+        
 
         // Specific items
         registerIngredientsByItemID(new ResourceLocation("minecraft:amethyst_shard"));
@@ -194,6 +195,16 @@ public class CrucibleTile extends BlockEntity {
         // Partials
         registerIngredientsByNamePartial("mushroom");
         registerIngredientsByNamePartial("shroom");
+        
+        registerIngredientsByTag(new ResourceLocation("iceandfire:dragon_hearts"));
+        registerIngredientsByTag(new ResourceLocation("iceandfire:mob_skulls"));
+        registerIngredientsByTag(new ResourceLocation("forge:scales"));
+        registerIngredientsByTag(new ResourceLocation("iceandfire:scales/dragon"));
+        registerIngredientsByTag(new ResourceLocation("createaddition:plants"));
+        registerIngredientsByTag(new ResourceLocation("minecraft:logs_that_burn"));
+        registerIngredientsByTag(new ResourceLocation("minecraft:planks"));*/
+
+		registerAllItems();
     }
 
     public static void registerIngredientsByTag(ResourceLocation tag) {
@@ -217,6 +228,16 @@ public class CrucibleTile extends BlockEntity {
             }
         });
     }
+
+	public static void registerAllItems() {
+		// registers all items in minecraft for debugging
+		ForgeRegistries.ITEMS.getKeys().forEach(res -> {
+			Item itm = ForgeRegistries.ITEMS.getValue(res);
+			if (itm != null && !validIngredients.contains(itm)) validIngredients.add(itm);
+		});
+	}
+    
+    
 
     // === Fields ===
     private float heat = MIN_TEMP, stir = 0f;
